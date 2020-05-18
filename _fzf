@@ -1,0 +1,116 @@
+#!/bin/bash
+# Author: Michal Svorc <michalsvorc.com>
+
+#===============================================================================
+# Help
+#===============================================================================
+
+function _print_help() {
+    cat <<HELP
+Collection of common CLI outputs piped into fuzzy finder (fzf) search returning
+a single value. Intended as an interactive filtered input for further Unix piping
+or subshell composition.
+
+Requiremets: fzf command available on \$PATH
+
+Usage: _fzf [COMMAND]
+
+Commands
+    -h|--help
+        print this help text and exit
+
+    ls-dir
+        list: directories in $PWD, including '.' and '..'
+        return: directory name
+        example: cd ./\$(_fzf ls-dir)
+
+    bash-history
+        list: Bash command history
+        return: command
+        example: \$(_fzf bash-history)
+
+    docker-images
+        list: Docker images
+        return: Docker image id
+        example: docker image history \$(_fzf docker-images)
+
+    docker-containers
+        list: Docker containers
+        return: Docker container id
+        example: docker stop \$(_fzf docker-containers)
+
+    docker-volumes
+        list: Docker volumes
+        return: Docker volume name
+        example: docker volume inspect \$(_fzf docker-volumes)
+
+fzf code repository: https://github.com/junegunn/fzf
+HELP
+}
+
+#===============================================================================
+# Functions
+#===============================================================================
+
+function _die() {
+    printf 'Error: %s\nSee help for proper usage:\n\n' "$1" >&2
+	_print_help
+    exit 1
+}
+
+function _fzf_pipe() {
+    fzf -1 -q "$1"
+}
+
+function _docker_containers() {
+    printf '%s' "$(docker ps -a | sed 1d | _fzf_pipe | awk '{print $1}')"
+}
+
+function _docker_images() {
+    printf '%s' "$(docker images | sed 1d | _fzf_pipe | awk '{print $3}')"
+}
+
+function _docker_volumes() {
+    printf '%s' "$(docker volume ls | sed 1d | _fzf_pipe | awk '{print $2}')"
+}
+
+function _bash_history() {
+    printf '%s' "$(cat $HOME/.bash_history | _fzf_pipe)"
+}
+
+function _ls_dir() {
+    # tree shows hidden and linked directories
+    printf '%s' "$(tree -d -a -L 1 -i --noreport | cut -f1 -d"-" | cat - <(echo ..) | _fzf_pipe)"
+}
+
+#===============================================================================
+# Execution
+#===============================================================================
+
+if [ $# -eq 0 ]; then
+    _die 'No arguments provided'
+fi
+
+case $1 in
+    -h|-\?|--help)
+        _print_help
+        ;;
+    bash-history)
+        _bash_history
+        ;;
+    docker-images)
+        _docker_images
+        ;;
+    docker-containers)
+        _docker_containers
+        ;;
+    docker-volumes)
+        _docker_volumes
+        ;;
+    ls-dir)
+        _ls_dir
+        ;;
+    *)
+        _die "Unknown command \"$1\""
+        ;;
+esac
