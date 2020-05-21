@@ -15,7 +15,7 @@ Requiremets: fzf command available on \$PATH
 
 Usage: _fzf [COMMAND]
 
-Commands
+Commands:
     -h|--help
         print this help text and exit
 
@@ -59,7 +59,7 @@ function _die() {
 }
 
 function _fzf_pipe() {
-    fzf -1 -q "$1"
+    fzf -q "$1"
 }
 
 function _docker_containers() {
