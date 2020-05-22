@@ -1,12 +1,21 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Author: Michal Svorc <michalsvorc.com>
+# set -o xtrace # debugging
+
+#===============================================================================
+# Abort the script on errors and undbound variables
+#===============================================================================
+
+set -o errexit      # abort on nonzero exitstatus
+set -o nounset      # abort on unbound variable
+set -o pipefail     # don't hide errors within pipes
 
 #===============================================================================
 # Help
 #===============================================================================
 
-function _print_help() {
-    cat <<HELP
+_print_help() {
+cat <<HELP
 Collection of common CLI outputs piped into fuzzy finder (fzf) search returning
 a single value. Intended as an interactive filtered input for further Unix piping
 or subshell composition.
@@ -20,27 +29,27 @@ Commands:
         print this help text and exit
 
     ls-dir
-        list: directories in $PWD, including '.' and '..'
+        search: directories in $PWD, including '.' and '..'
         return: directory name
         example: cd ./\$(_fzf ls-dir)
 
     bash-history
-        list: Bash command history
+        search: Bash command history
         return: command
         example: \$(_fzf bash-history)
 
     docker-images
-        list: Docker images
+        search: Docker images
         return: Docker image id
         example: docker image history \$(_fzf docker-images)
 
     docker-containers
-        list: Docker containers
+        search: Docker containers
         return: Docker container id
         example: docker stop \$(_fzf docker-containers)
 
     docker-volumes
-        list: Docker volumes
+        search: Docker volumes
         return: Docker volume name
         example: docker volume inspect \$(_fzf docker-volumes)
 
@@ -52,35 +61,41 @@ HELP
 # Functions
 #===============================================================================
 
-function _die() {
-    printf 'Error: %s\nSee help for proper usage:\n\n' "$1" >&2
+_die() {
+    local error_message="${1}"
+    printf 'Error: %s\nSee help for proper usage:\n\n' "${error_message}" >&2
 	_print_help
     exit 1
 }
 
-function _fzf_pipe() {
-    fzf -q "$1"
+_fzf_pipe() {
+    fzf
 }
 
-function _docker_containers() {
-    printf '%s' "$(docker ps -a | sed 1d | _fzf_pipe | awk '{print $1}')"
+_docker_containers() {
+    local docker_containers_output="$(docker ps -a | sed 1d | _fzf_pipe | awk '{print $1}')"
+    printf '%s' "${docker_containers_output}"
 }
 
-function _docker_images() {
-    printf '%s' "$(docker images | sed 1d | _fzf_pipe | awk '{print $3}')"
+_docker_images() {
+    local docker_images_output="$(docker images | sed 1d | _fzf_pipe | awk '{print $3}')"
+    printf '%s' "${docker_images_output}"
 }
 
-function _docker_volumes() {
-    printf '%s' "$(docker volume ls | sed 1d | _fzf_pipe | awk '{print $2}')"
+_docker_volumes() {
+    local docker_volumes_output="$(docker volume ls | sed 1d | _fzf_pipe | awk '{print $2}')"
+    printf '%s' "${docker_volumes_output}"
 }
 
-function _bash_history() {
-    printf '%s' "$(cat $HOME/.bash_history | _fzf_pipe)"
+_bash_history() {
+    local bash_history_output="$(cat $HOME/.bash_history | _fzf_pipe)"
+    printf '%s' "${bash_history_output}"
 }
 
-function _ls_dir() {
+_ls_dir() {
     # tree shows hidden and linked directories
-    printf '%s' "$(tree -d -a -L 1 -i --noreport | cut -f1 -d"-" | cat - <(echo ..) | _fzf_pipe)"
+    local ls_dir_output="$(tree -d -a -L 1 -i --noreport | cut -f1 -d"-" | cat - <(echo ..) | _fzf_pipe)"
+    printf '%s' "${ls_dir_output}"
 }
 
 #===============================================================================
@@ -91,7 +106,7 @@ if [ $# -eq 0 ]; then
     _die 'No arguments provided'
 fi
 
-case $1 in
+case "${1}" in
     -h|-\?|--help)
         _print_help
         ;;
@@ -111,6 +126,6 @@ case $1 in
         _ls_dir
         ;;
     *)
-        _die "Unknown command \"$1\""
+        _die "Unknown argument '${1}'"
         ;;
 esac
