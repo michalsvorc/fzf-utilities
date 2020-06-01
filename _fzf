@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 # Author: Michal Svorc <michalsvorc.com>
-# set -o xtrace # debugging
 
 #===============================================================================
 # Abort the script on errors and undbound variables
@@ -9,6 +8,7 @@
 set -o errexit      # abort on nonzero exitstatus
 set -o nounset      # abort on unbound variable
 set -o pipefail     # don't hide errors within pipes
+# set -o xtrace     # debugging
 
 #===============================================================================
 # Help
@@ -29,7 +29,7 @@ Commands:
         print this help text and exit
 
     ls-dir
-        search: directories in $PWD, including '.' and '..'
+        search: directories in \$PWD, including hidden and linked directories
         return: directory name
         example: cd ./\$(_fzf ls-dir)
 
@@ -93,7 +93,6 @@ _bash_history() {
 }
 
 _ls_dir() {
-    # tree shows hidden and linked directories
     local ls_dir_output="$(tree -d -a -L 1 -i --noreport | cut -f1 -d"-" | cat - <(echo ..) | _fzf_pipe)"
     printf '%s' "${ls_dir_output}"
 }
@@ -107,7 +106,7 @@ if [ $# -eq 0 ]; then
 fi
 
 case "${1}" in
-    -h|-\?|--help)
+    -h|--help)
         _print_help
         ;;
     bash-history)
@@ -129,3 +128,4 @@ case "${1}" in
         _die "Unknown argument '${1}'"
         ;;
 esac
+
